@@ -9,14 +9,13 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { Auth } from 'src/auth/decorators/auth.decorator';
-import { IdValidationPipe } from 'src/pipes/id.validation.pipes';
+import { IdValidationPipe } from 'src/utils/pipes/id.validation.pipes';
 
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get(':id')
-  // @Auth('teacher')
   async getUser(@Param('id', IdValidationPipe) id: string) {
     return this.userService.byId(id);
   }
@@ -27,6 +26,11 @@ export class UserController {
     @Body() data: any,
   ) {
     return this.userService.editProfile(id, data);
+  }
+
+  @Get('/:id/my-activity')
+  async MyActivity(@Param('id', IdValidationPipe) _id: string) {
+    return this.userService.getMyActivity(_id);
   }
 
   @Delete(':id')

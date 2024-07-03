@@ -1,13 +1,18 @@
+/* eslint-disable prettier/prettier */
 import { Injectable } from '@nestjs/common';
 import { NotFoundException } from '@nestjs/common/exceptions';
 import { InjectModel } from 'nestjs-typegoose';
 import { UserModel } from './user.model';
 import { ModelType } from '@typegoose/typegoose/lib/types';
+import { FolderModel } from 'src/folder/folder.model';
+import { LessonModel } from 'src/lesson/lesson.model';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(UserModel) private readonly UserModel: ModelType<UserModel>,
+    @InjectModel(FolderModel) private readonly FolderModel: ModelType<FolderModel>,
+    @InjectModel(LessonModel) private readonly LessonModel: ModelType<LessonModel>,
   ) {}
 
   async byId(_id: string) {
@@ -35,6 +40,13 @@ export class UserService {
     );
 
     return findUserAndUpdate;
+  }
+
+  async getMyActivity(_id: string) {
+    const folder = await this.FolderModel.find({ ownerID: _id, parentID: null });
+    const lesson = await this.LessonModel.find({ ownerID: _id });
+    
+    return {folder, lesson};
   }
 
   async delete(id: string) {
