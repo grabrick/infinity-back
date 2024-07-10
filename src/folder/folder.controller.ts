@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Put, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Put, Get, Param, Patch } from '@nestjs/common';
 import { FolderService } from './folder.service';
 import { FolderDto } from './dto/folder.dto';
 
@@ -24,6 +24,11 @@ export class FolderController {
   @Put('/delete')
   deleteFolder(@Body() body: { foldersID: string | string[] }) {
     return this.folderService.deleteFolders(body);
+  }
+
+  @Patch('/:id/rename')
+  renameFolder(@Param('id') folderID: string, @Body() folderName: string) {
+    return this.folderService.renameFolder(folderID, folderName);
   }
 
   @Post('/move')

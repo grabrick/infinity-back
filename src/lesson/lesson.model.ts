@@ -1,27 +1,32 @@
-import { Ref, prop } from '@typegoose/typegoose';
+import { modelOptions, prop } from '@typegoose/typegoose';
 import { Base, TimeStamps } from '@typegoose/typegoose/lib/defaultClasses';
 import { Types } from 'mongoose';
 
 export interface ILessonModel extends Base {}
 
+@modelOptions({ schemaOptions: { _id: false } })
 class QuestionFieldsModel {
-  _id: false;
+  @prop()
+  number: number;
 
   @prop()
+  symbol: string;
+
+  @prop({ default: '' })
   field: string;
 
-  @prop()
+  @prop({ default: false })
   isCorrect: boolean;
 }
 
 class QuestionModel {
-  _id: false;
+  _id: Types.ObjectId;
 
-  @prop()
+  @prop({ default: '' })
   questionName: string;
 
-  @prop({ default: [], ref: () => QuestionFieldsModel })
-  questionFields: Ref<QuestionFieldsModel>[];
+  @prop({ type: () => [QuestionFieldsModel] })
+  questionFields: QuestionFieldsModel[];
 }
 
 export class LessonModel extends TimeStamps {
@@ -36,9 +41,12 @@ export class LessonModel extends TimeStamps {
   @prop({ default: 'lesson' })
   type: string;
 
+  @prop({ type: Types.ObjectId, default: null })
+  parentID: Types.ObjectId;
+
   @prop()
   template: string;
 
-  @prop({ default: [], ref: () => QuestionModel })
-  question: Ref<QuestionModel>[];
+  @prop({ type: () => [QuestionModel] })
+  questions: QuestionModel[];
 }

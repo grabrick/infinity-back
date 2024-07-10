@@ -119,6 +119,17 @@ export class FolderService {
     await this.FolderModel.findByIdAndDelete(folderId);
   }
 
+  async renameFolder(folderID: string, folderName: any) {
+    const folder = await this.FolderModel.findByIdAndUpdate(
+      { _id: folderID },
+      {
+        folderName: folderName.folderName,
+      },
+    );
+
+    return folder;
+  }
+
   async moveEntityInFolder(data: any) {
     return data;
   }
