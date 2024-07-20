@@ -44,7 +44,7 @@ export class UserService {
 
   async getMyActivity(_id: string) {
     const folder = await this.FolderModel.find({ ownerID: _id, parentID: null });
-    const lesson = await this.LessonModel.find({ ownerID: _id });
+    const lesson = await this.LessonModel.find({ ownerID: _id, parentID: null });
     
     return {folder, lesson};
   }

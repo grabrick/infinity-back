@@ -4,12 +4,15 @@ import { InjectModel } from 'nestjs-typegoose';
 import { LessonModel } from './lesson.model';
 import { ModelType } from '@typegoose/typegoose/lib/types';
 import mongoose from 'mongoose';
+import { FolderModel } from 'src/folder/folder.model';
 
 @Injectable()
 export class LessonService {
   constructor(
     @InjectModel(LessonModel)
     private readonly LessonModel: ModelType<LessonModel>,
+    @InjectModel(FolderModel)
+    private readonly FolderModel: ModelType<FolderModel>,
   ) {}
 
   async findById(_id: string) {
@@ -118,5 +121,88 @@ export class LessonService {
     }
 
     return lesson;
+  }
+
+  async moveLesson(targetID: string, draggedID: { draggedID: string }) {
+    const findTargetFolder = await this.FolderModel.findById(targetID);
+    const findDraggedLesson = await this.LessonModel.findById(
+      draggedID.draggedID,
+    );
+
+    if (!findTargetFolder) {
+      throw new NotFoundException(`Такой папки не существует`);
+    }
+
+    if (!findDraggedLesson) {
+      throw new NotFoundException(`Такой элемент не существует`);
+    }
+
+    findTargetFolder.children.push(findDraggedLesson._id);
+
+    // Сохранить изменения в папке
+    await findTargetFolder.save();
+
+    await this.LessonModel.findByIdAndUpdate(
+      draggedID.draggedID,
+      {
+        parentID: targetID,
+      },
+      { new: true }, // вернуть обновленный документ
+    );
+  }
+
+  async moveBackLesson(
+    draggedLessonID: string,
+    folderID: { folderID: string },
+  ) {
+    const findRootFolder = await this.FolderModel.findById(folderID.folderID);
+
+    if (!findRootFolder) {
+      throw new NotFoundException(
+        'Нет папки в которую можно перекинуть элемент',
+      );
+    }
+
+    const findDraggedLesson = await this.LessonModel.findById(draggedLessonID);
+    // const findLesson = await this.LessonModel.findById(draggedLessonID);
+    if (findRootFolder.parentID === null) {
+      await this.LessonModel.findByIdAndUpdate(
+        { _id: findDraggedLesson._id },
+        {
+          parentID: null,
+        },
+      );
+
+      await this.FolderModel.findByIdAndUpdate(
+        { _id: findDraggedLesson.parentID },
+        {
+          $pull: { children: findDraggedLesson._id },
+        },
+      );
+    } else {
+      // Устанавливаем parentID перетаскиваемой папки на id корневой папки
+      await this.LessonModel.findByIdAndUpdate(
+        { _id: findDraggedLesson._id },
+        {
+          parentID: findRootFolder.parentID,
+        },
+      );
+
+      // Добавляем перетаскиваемую папку в children корневой папки
+      await this.FolderModel.findByIdAndUpdate(
+        { _id: findRootFolder._id },
+        {
+          $addToSet: { children: findDraggedLesson._id },
+        },
+      );
+
+      // Удаляем перетаскиваемую папку из children её предыдущего родителя
+      await this.FolderModel.findByIdAndUpdate(
+        { _id: findDraggedLesson.parentID },
+        {
+          $pull: { children: findDraggedLesson._id },
+        },
+      );
+    }
   }
 }

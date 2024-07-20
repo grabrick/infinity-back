@@ -49,4 +49,16 @@ export class LessonController {
   deleteLesson(@Param() lessonID: { id: string }) {
     return this.lessonService.delete(lessonID.id);
   }
+
+  @Patch('/:id/moveLesson')
+  @Auth('teacher')
+  moveLesson(@Param('id') targetID: string, @Body() draggedID: any) {
+    return this.lessonService.moveLesson(targetID, draggedID);
+  }
+
+  @Patch('/:id/moveBackLesson')
+  @Auth('teacher')
+  moveBackLesson(@Param('id') draggedLessonID: string, @Body() folderID: any) {
+    return this.lessonService.moveBackLesson(draggedLessonID, folderID);
+  }
 }

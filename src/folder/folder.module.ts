@@ -4,6 +4,7 @@ import { FolderController } from './folder.controller';
 import { TypegooseModule } from 'nestjs-typegoose';
 import { FolderModel } from './folder.model';
 import { ConfigModule } from '@nestjs/config';
+import { LessonModel } from 'src/lesson/lesson.model';
 
 @Module({
   imports: [
@@ -12,6 +13,14 @@ import { ConfigModule } from '@nestjs/config';
         typegooseClass: FolderModel,
         schemaOptions: {
           collection: 'Folder',
+        },
+      },
+    ]),
+    TypegooseModule.forFeature([
+      {
+        typegooseClass: LessonModel,
+        schemaOptions: {
+          collection: 'Lesson',
         },
       },
     ]),

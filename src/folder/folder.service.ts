@@ -1,15 +1,22 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { FolderDto } from './dto/folder.dto';
 import { InjectModel } from 'nestjs-typegoose';
 import { FolderModel } from './folder.model';
 import { ModelType } from '@typegoose/typegoose/lib/types';
 import mongoose, { Types } from 'mongoose';
+import { LessonModel } from 'src/lesson/lesson.model';
 
 @Injectable()
 export class FolderService {
   constructor(
     @InjectModel(FolderModel)
     private readonly FolderModel: ModelType<FolderModel>,
+    @InjectModel(LessonModel)
+    private readonly LessonModel: ModelType<LessonModel>,
   ) {}
 
   async createNewFolder(folderDto: FolderDto): Promise<FolderModel> {
@@ -65,7 +72,7 @@ export class FolderService {
     return this.FolderModel.find({ parentID: null }).exec();
   }
 
-  async getChildrenFolders(parentId: string) {
+  async getChildrens(parentId: string) {
     if (!parentId) {
       throw new Error('parentId is required');
     }
@@ -74,12 +81,22 @@ export class FolderService {
       parentID: new Types.ObjectId(parentId),
     }).exec();
 
-    return folder;
+    const lesson = await this.LessonModel.find({
+      parentID: new Types.ObjectId(parentId),
+    }).exec();
+
+    return {
+      folder: folder,
+      lesson: lesson,
+    };
   }
 
-  async deleteFolders(data: { foldersID: string | string[] }): Promise<void> {
+  async deleteFolders(data: {
+    foldersID: string | string[];
+    folderID: string;
+  }) {
     try {
-      const { foldersID } = data;
+      const { foldersID, folderID } = data;
       let folderIDsArray: string[];
 
       if (typeof foldersID === 'string') {
@@ -92,6 +109,20 @@ export class FolderService {
         );
       }
 
+      if (folderID) {
+        await Promise.all(
+          folderIDsArray.map(
+            async (id) =>
+              await this.FolderModel.findByIdAndUpdate(
+                { _id: folderID },
+                {
+                  $pull: { children: id },
+                },
+              ),
+          ),
+        );
+      }
+
       await Promise.all(
         folderIDsArray.map((id) => this.deleteFolderAndChildren(id)),
       );
@@ -101,13 +132,20 @@ export class FolderService {
     }
   }
 
-  private async deleteFolderAndChildren(folderId: string): Promise<void> {
+  private async deleteFolderAndChildren(folderId: string) {
     const folder = await this.FolderModel.findById(folderId);
+
     if (!folder) {
-      console.warn(`Папка с ID ${folderId} не найдена`);
+      // Папка не найдена, возможно это урок
+      const lesson = await this.LessonModel.findById(folderId);
+      if (lesson) {
+        // Если это урок, удаляем его
+        await this.LessonModel.findByIdAndDelete(folderId);
+      }
       return;
     }
 
+    // Удаляем все дочерние элементы (если они есть)
     if (folder.children && folder.children.length > 0) {
       await Promise.all(
         folder.children.map((childId: any) =>
@@ -116,6 +154,7 @@ export class FolderService {
       );
     }
 
+    // Удаляем текущую папку
     await this.FolderModel.findByIdAndDelete(folderId);
   }
 
@@ -130,7 +169,169 @@ export class FolderService {
     return folder;
   }
 
-  async moveEntityInFolder(data: any) {
-    return data;
+  // async moveFolder(targetID: string, draggedID: { draggedID: string }) {
+  //   const findTargetFolder = await this.FolderModel.findById(targetID);
+  //   const findDraggedFolder = await this.FolderModel.findById(
+  //     draggedID.draggedID,
+  //   );
+
+  //   if (!findTargetFolder) {
+  //     throw new NotFoundException(`Такой папки не существует`);
+  //   }
+
+  //   if (!findDraggedFolder) {
+  //     throw new NotFoundException(`Такой элемент не существует`);
+  //   }
+
+  //   findTargetFolder.children.push(findDraggedFolder._id);
+
+  //   await this.FolderModel.findByIdAndUpdate(
+  //     draggedID.draggedID,
+  //     {
+  //       parentID: targetID,
+  //     },
+  //     { new: true },
+  //   );
+
+  //   await findTargetFolder.save();
+  // }
+
+  async moveFolder(targetID: string, draggedID: { draggedID: string }) {
+    const findTargetFolder = await this.FolderModel.findById(targetID);
+    const findDraggedFolder = await this.FolderModel.findById(
+      draggedID.draggedID,
+    );
+
+    if (!findTargetFolder) {
+      throw new NotFoundException(`Такой папки не существует`);
+    }
+
+    if (!findDraggedFolder) {
+      throw new NotFoundException(`Такой элемент не существует`);
+    }
+
+    // Проверка на наличие уже существующего child ID
+    if (!findTargetFolder.children.includes(findDraggedFolder._id)) {
+      findTargetFolder.children.push(findDraggedFolder._id);
+    }
+
+    // console.log({ targetID: targetID, draggedID: draggedID.draggedID });
+
+    await this.FolderModel.findByIdAndUpdate(
+      draggedID.draggedID,
+      {
+        parentID: targetID,
+      },
+      { new: true },
+    );
+
+    await findTargetFolder.save();
   }
+
+  async moveBackFolder(
+    draggedFolderID: string,
+    folderID: { folderID: string },
+  ) {
+    const findRootFolder = await this.FolderModel.findById(folderID.folderID);
+
+    if (!findRootFolder) {
+      throw new NotFoundException(
+        'Нет папки в которую можно перекинуть элемент',
+      );
+    }
+
+    const findDraggedFolder = await this.FolderModel.findById(draggedFolderID);
+
+    if (findRootFolder.parentID === null) {
+      // Устанавливаем parentID на null для перетаскиваемой папки
+      await this.FolderModel.findByIdAndUpdate(
+        { _id: findDraggedFolder._id },
+        {
+          parentID: null,
+        },
+      );
+
+      // Удаляем перетаскиваемую папку из children её предыдущего родителя
+      await this.FolderModel.findByIdAndUpdate(
+        { _id: findDraggedFolder.parentID },
+        {
+          $pull: { children: findDraggedFolder._id },
+        },
+      );
+    } else {
+      // Устанавливаем parentID перетаскиваемой папки на id корневой папки
+      await this.FolderModel.findByIdAndUpdate(
+        { _id: findDraggedFolder._id },
+        {
+          parentID: findRootFolder.parentID,
+        },
+      );
+
+      // Добавляем перетаскиваемую папку в children корневой папки
+      await this.FolderModel.findByIdAndUpdate(
+        { _id: findRootFolder._id },
+        {
+          $addToSet: { children: findDraggedFolder._id },
+        },
+      );
+
+      // Удаляем перетаскиваемую папку из children её предыдущего родителя
+      await this.FolderModel.findByIdAndUpdate(
+        { _id: findDraggedFolder.parentID },
+        {
+          $pull: { children: findDraggedFolder._id },
+        },
+      );
+    }
+  }
+
+  // async moveBackFolder(
+  //   draggedFolderID: string,
+  //   folderID: { folderID: string },
+  // ) {
+  //   const findRootFolder = await this.FolderModel.findById(folderID.folderID);
+
+  //   if (!findRootFolder) {
+  //     throw new NotFoundException(
+  //       'Нет папки в которую можно перекинуть элемент',
+  //     );
+  //   }
+
+  //   const findDraggedFolder = await this.FolderModel.findById(draggedFolderID);
+
+  //   if (!findDraggedFolder) {
+  //     throw new NotFoundException('Перетаскиваемая папка не найдена');
+  //   }
+
+  //   if (findRootFolder.parentID === null) {
+  //     // Устанавливаем parentID на null для перетаскиваемой папки
+  //     await this.FolderModel.findByIdAndUpdate(findDraggedFolder._id, {
+  //       parentID: null,
+  //     });
+
+  //     // Удаляем перетаскиваемую папку из children её предыдущего родителя, если parentID не null
+  //     if (findDraggedFolder.parentID) {
+  //       await this.FolderModel.findByIdAndUpdate(findDraggedFolder.parentID, {
+  //         $pull: { children: findDraggedFolder._id },
+  //       });
+  //     }
+  //   } else {
+  //     // Устанавливаем parentID перетаскиваемой папки на id корневой папки
+  //     await this.FolderModel.findByIdAndUpdate(findDraggedFolder._id, {
+  //       parentID: findRootFolder.parentID,
+  //     });
+
+  //     // Добавляем перетаскиваемую папку в children корневой папки
+  //     await this.FolderModel.findByIdAndUpdate(findRootFolder._id, {
+  //       $addToSet: { children: findDraggedFolder._id },
+  //     });
+
+  //     // Удаляем перетаскиваемую папку из children её предыдущего родителя, если parentID не null
+  //     if (findDraggedFolder.parentID) {
+  //       await this.FolderModel.findByIdAndUpdate(findDraggedFolder.parentID, {
+  //         $pull: { children: findDraggedFolder._id },
+  //       });
+  //     }
+  //   }
+  // }
 }
