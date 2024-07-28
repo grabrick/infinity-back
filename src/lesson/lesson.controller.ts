@@ -20,6 +20,11 @@ export class LessonController {
     return this.lessonService.findById(_id);
   }
 
+  @Get('/:id')
+  findSelectedByID(@Param('id') _id: string) {
+    return this.lessonService.findSelectedById(_id);
+  }
+
   @Post('/create')
   @Auth('teacher')
   createLessons(@Body() lessonDto: LessonDto) {

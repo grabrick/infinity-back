@@ -17,7 +17,11 @@ export class LessonService {
 
   async findById(_id: string) {
     const findSelectedLesson = await this.LessonModel.findById(_id);
+    return findSelectedLesson;
+  }
 
+  async findSelectedById(_id: string) {
+    const findSelectedLesson = await this.LessonModel.findById(_id);
     return findSelectedLesson;
   }
 
@@ -147,7 +151,7 @@ export class LessonService {
       {
         parentID: targetID,
       },
-      { new: true }, // вернуть обновленный документ
+      { new: true },
     );
   }
 
@@ -164,7 +168,6 @@ export class LessonService {
     }
 
     const findDraggedLesson = await this.LessonModel.findById(draggedLessonID);
-    // const findLesson = await this.LessonModel.findById(draggedLessonID);
     if (findRootFolder.parentID === null) {
       await this.LessonModel.findByIdAndUpdate(
         { _id: findDraggedLesson._id },
