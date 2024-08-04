@@ -6,8 +6,13 @@ import {
   Param,
   Delete,
   Patch,
+  Put,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { LessonService } from './lesson.service';
+import { multerOptions } from '../utils/config/multer.config';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { LessonDto } from './dto/lesson.dto';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 
@@ -66,4 +71,22 @@ export class LessonController {
   moveBackLesson(@Param('id') draggedLessonID: string, @Body() folderID: any) {
     return this.lessonService.moveBackLesson(draggedLessonID, folderID);
   }
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file', multerOptions))
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    return this.lessonService.saveFile(file);
+  }
+
+  @Put('/:id/saveSettings')
+  @Auth('teacher')
+  saveLessonSetting(@Param('id') lessonID: string, @Body() data: any) {
+    return this.lessonService.saveLessonSettings(lessonID, data);
+  }
+
+  // @Put('/:id/saveMusic')
+  // @Auth('teacher')
+  // saveLessonMusic(@Param('id') lessonID: string, @Body() data: any) {
+  //   return this.lessonService.saveLessonMusic(lessonID, data);
+  // }
 }

@@ -208,4 +208,54 @@ export class LessonService {
       );
     }
   }
+
+  async saveFile(file: Express.Multer.File) {
+    // const fileUrl = `/uploads/${file.filename}`;
+    return file;
+  }
+
+  // async saveLessonSettings(lessonID, data) {
+  //   const findLesson = await this.LessonModel.findById(lessonID);
+
+  //   if (!findLesson) {
+  //     throw new NotFoundException('Урок не найден');
+  //   }
+  //   console.log(data);
+  //   const saved = await this.LessonModel.findByIdAndUpdate(
+  //     { _id: lessonID },
+  //     {
+  //       lessonSettings: data.lessonSettings,
+  //     },
+  //     { new: true },
+  //   );
+
+  //   return saved;
+  // }
+
+  async saveLessonSettings(lessonID, data) {
+    const findLesson = await this.LessonModel.findById(lessonID);
+    if (!findLesson) {
+      throw new NotFoundException('Урок не найден');
+    }
+
+    const updateData = {
+      'lessonSettings.timer': data.lessonSettings.timer,
+      'lessonSettings.limitOnLives': data.lessonSettings.limitOnLives,
+      'lessonSettings.shuffling': data.lessonSettings.shuffling,
+      'lessonSettings.labeling': data.lessonSettings.labeling,
+      'lessonSettings.endGame': data.lessonSettings.endGame,
+      'lessonSettings.symbol': data.lessonSettings.symbol,
+      'lessonSettings.leaderboard': data.lessonSettings.leaderboard,
+      'lessonSettings.soundboard.sounds': data.lessonSettings.soundboard.sounds,
+      'lessonSettings.soundboard.music': data.lessonSettings.soundboard.music,
+    };
+
+    const saved = await this.LessonModel.findByIdAndUpdate(
+      { _id: lessonID },
+      { $set: updateData },
+      { new: true },
+    );
+
+    return saved;
+  }
 }

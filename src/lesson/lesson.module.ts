@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { LessonModel } from './lesson.model';
 import { TypegooseModule } from 'nestjs-typegoose';
 import { FolderModel } from 'src/folder/folder.model';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   imports: [
@@ -25,6 +26,9 @@ import { FolderModel } from 'src/folder/folder.model';
       },
     ]),
     ConfigModule,
+    MulterModule.register({
+      dest: './uploads',
+    }),
   ],
   controllers: [LessonController],
   providers: [LessonService],
