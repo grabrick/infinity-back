@@ -185,48 +185,13 @@ class LeaderboardOption {
   leadersSize: LeadersSize;
 }
 
-// @modelOptions({ schemaOptions: { _id: false } })
-// class File {
-//   fileName: string;
-//   size: number;
-//   originalName: string;
-//   mimeType: string;
-// }
-
-// @modelOptions({ schemaOptions: { _id: false } })
-// class MusicOption {
-//   @prop({ type: () => File })
-//   file: File;
-
-//   fileUrl: string;
-// }
-
-@modelOptions({ schemaOptions: { _id: false } })
-class AudioFile {
-  file: any;
-
-  fileUrl: string;
-}
-
-@modelOptions({ schemaOptions: { _id: false } })
-class SoundsOption {
-  id: number;
-
-  name: string;
-
-  audioFile: AudioFile;
-}
-
 @modelOptions({ schemaOptions: { _id: false } })
 class Soundboard {
-  // @prop({ type: () => MusicOption, default: null })
-  // music: MusicOption;
-
   @prop({ default: null })
   music: any;
 
-  @prop({ type: () => [SoundsOption], default: null })
-  sounds: SoundsOption[];
+  @prop({ default: [] })
+  sounds: any;
 }
 
 @modelOptions({ schemaOptions: { _id: false } })
@@ -329,7 +294,7 @@ export class LessonModel extends TimeStamps {
         { id: 2, title: 'Никакой', selected: false },
       ],
       leaderboard: null,
-      soundboard: { music: null, sounds: null },
+      soundboard: { music: null, sounds: [] },
     }),
   })
   lessonSettings: LessonSettings;

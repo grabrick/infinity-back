@@ -72,10 +72,22 @@ export class LessonController {
     return this.lessonService.moveBackLesson(draggedLessonID, folderID);
   }
 
-  @Post('upload')
+  @Post('uploadMusic')
   @UseInterceptors(FileInterceptor('file', multerOptions))
-  async uploadFile(@UploadedFile() file: Express.Multer.File) {
-    return this.lessonService.saveFile(file);
+  async uploadMusicFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() lessonID: any,
+  ) {
+    return this.lessonService.saveMusicFile(file, lessonID.lessonID);
+  }
+
+  @Post('uploadSounds')
+  @UseInterceptors(FileInterceptor('file', multerOptions))
+  async uploadSoundsFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() data: any,
+  ) {
+    return this.lessonService.saveSoundsFile(file, data);
   }
 
   @Put('/:id/saveSettings')
@@ -84,9 +96,15 @@ export class LessonController {
     return this.lessonService.saveLessonSettings(lessonID, data);
   }
 
-  // @Put('/:id/saveMusic')
-  // @Auth('teacher')
-  // saveLessonMusic(@Param('id') lessonID: string, @Body() data: any) {
-  //   return this.lessonService.saveLessonMusic(lessonID, data);
-  // }
+  @Put('/:name/deleteMusic')
+  @Auth('teacher')
+  deleteMusicFile(@Param('name') fileName: string, @Body() lessonID: any) {
+    return this.lessonService.deleteMusicFile(fileName, lessonID);
+  }
+
+  @Put('/:name/deleteSound')
+  @Auth('teacher')
+  deleteSoundFile(@Param('name') fileName: string, @Body() lessonID: any) {
+    return this.lessonService.deleteSoundFile(fileName, lessonID);
+  }
 }

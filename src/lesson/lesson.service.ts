@@ -1,13 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { LessonDto } from './dto/lesson.dto';
 import { InjectModel } from 'nestjs-typegoose';
 import { LessonModel } from './lesson.model';
 import { ModelType } from '@typegoose/typegoose/lib/types';
 import mongoose from 'mongoose';
 import { FolderModel } from 'src/folder/folder.model';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class LessonService {
+  private readonly logger = new Logger(LessonService.name);
   constructor(
     @InjectModel(LessonModel)
     private readonly LessonModel: ModelType<LessonModel>,
@@ -209,28 +217,143 @@ export class LessonService {
     }
   }
 
-  async saveFile(file: Express.Multer.File) {
-    // const fileUrl = `/uploads/${file.filename}`;
+  async saveMusicFile(file: Express.Multer.File, lessonID: string) {
+    const findLesson = await this.LessonModel.findById(lessonID);
+    if (!findLesson) {
+      throw new NotFoundException('Урок не найден');
+    }
+
+    const updateData = {
+      'lessonSettings.soundboard.music': {
+        file: {
+          fileName: file.filename,
+          size: file.size,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+        },
+        fileUrl: file.path,
+      },
+    };
+
+    await this.LessonModel.findByIdAndUpdate(
+      { _id: lessonID },
+      { $set: updateData },
+      { new: true },
+    );
+
     return file;
   }
 
-  // async saveLessonSettings(lessonID, data) {
-  //   const findLesson = await this.LessonModel.findById(lessonID);
+  async saveSoundsFile(file: Express.Multer.File, data: any) {
+    const findLesson = await this.LessonModel.findById(data.lessonID);
+    if (!findLesson) {
+      throw new NotFoundException('Урок не найден');
+    }
 
-  //   if (!findLesson) {
-  //     throw new NotFoundException('Урок не найден');
-  //   }
-  //   console.log(data);
-  //   const saved = await this.LessonModel.findByIdAndUpdate(
-  //     { _id: lessonID },
-  //     {
-  //       lessonSettings: data.lessonSettings,
-  //     },
-  //     { new: true },
-  //   );
+    const updateData = {
+      $push: {
+        'lessonSettings.soundboard.sounds': {
+          id: Number(data.data.id),
+          name: data.data.name,
+          audioFile: {
+            file: {
+              fileName: file.filename,
+              size: file.size,
+              originalName: file.originalname,
+              mimeType: file.mimetype,
+            },
+            fileUrl: file.path,
+          },
+        },
+      },
+    };
 
-  //   return saved;
-  // }
+    await this.LessonModel.findByIdAndUpdate(data.lessonID, updateData, {
+      new: true,
+    });
+
+    return { file, data };
+  }
+
+  async deleteMusicFile(fileName: string, lessonID: any) {
+    const findLesson = await this.LessonModel.findById(lessonID.lessonID);
+    if (!findLesson) {
+      throw new NotFoundException('Урок не найден');
+    }
+
+    const currentDir = process.cwd();
+    const uploadsDir = path.join(currentDir, 'uploads');
+
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const files = fs.readdirSync(uploadsDir);
+    this.logger.log(`Files in uploads directory: ${files.join(', ')}`);
+
+    const filePath = path.join(uploadsDir, fileName);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    } else {
+      throw new NotFoundException('Файл не найден');
+    }
+
+    await this.LessonModel.findByIdAndUpdate(
+      lessonID.lessonID,
+      { 'lessonSettings.soundboard.music': null },
+      { new: true },
+    );
+
+    return {
+      fileName: fileName,
+      lessonID: lessonID.lessonID,
+      filePath: filePath,
+    };
+  }
+
+  async deleteSoundFile(fileName: string, lessonID: any) {
+    try {
+      const lesson = await this.LessonModel.findById(lessonID.lessonID);
+
+      if (!lesson) {
+        this.logger.error('Lesson not found');
+        throw new NotFoundException('Урок не найден');
+      }
+
+      lesson.lessonSettings.soundboard.sounds =
+        lesson.lessonSettings.soundboard.sounds.filter(
+          (sound) => sound.audioFile.file.fileName !== fileName,
+        );
+
+      const updatedLesson = await lesson.save();
+
+      const currentDir = process.cwd();
+      const uploadsDir = path.join(currentDir, 'uploads');
+      const filePath = path.join(uploadsDir, fileName);
+
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        this.logger.log('File deleted successfully');
+      } else {
+        this.logger.warn('File not found in filesystem');
+      }
+
+      this.logger.log('Database updated successfully');
+
+      return {
+        message: 'Файл успешно удален',
+        fileName: fileName,
+        lessonID: lessonID.lessonID,
+        lesson: updatedLesson,
+      };
+    } catch (error) {
+      this.logger.error('Error in deleteSoundFile:', error);
+      throw new InternalServerErrorException(
+        'Произошла ошибка при удалении файла',
+      );
+    }
+  }
 
   async saveLessonSettings(lessonID, data) {
     const findLesson = await this.LessonModel.findById(lessonID);
