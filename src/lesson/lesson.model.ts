@@ -113,7 +113,7 @@ class TimerOptionTime {
   @prop()
   minutes: number;
 
-  @prop()
+  @prop({ default: 0 })
   seconds: number;
 }
 
@@ -246,6 +246,12 @@ class LessonSettings {
   @prop({ type: () => [SymbolOption], default: [] })
   symbol: SymbolOption[];
 
+  @prop({ default: [] })
+  access: any;
+
+  @prop({ default: [] })
+  privacy: any;
+
   @prop({ type: () => LeaderboardOption, default: null })
   leaderboard: LeaderboardOption;
 
@@ -271,6 +277,9 @@ export class LessonModel extends TimeStamps {
   @prop()
   template: string;
 
+  @prop({ default: null })
+  sharedPlayUrl: string;
+
   @prop({ type: () => [QuestionModel] })
   questions: QuestionModel[];
 
@@ -292,6 +301,23 @@ export class LessonModel extends TimeStamps {
       symbol: [
         { id: 1, title: 'A, B, C', selected: true },
         { id: 2, title: 'Никакой', selected: false },
+      ],
+      access: [
+        {
+          id: 1,
+          title: 'Для не зарегистрированных пользователей',
+          selected: true,
+        },
+        {
+          id: 2,
+          title: 'Для зарегистрированных пользователей',
+          selected: false,
+        },
+        { id: 3, title: 'Для анонимных пользователей', selected: false },
+      ],
+      privacy: [
+        { id: 1, title: 'Открытый доступ к уроку', selected: false },
+        { id: 2, title: 'Закрытый доступ к уроку', selected: true },
       ],
       leaderboard: null,
       soundboard: { music: null, sounds: [] },

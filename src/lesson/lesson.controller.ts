@@ -9,6 +9,8 @@ import {
   Put,
   UseInterceptors,
   UploadedFile,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { LessonService } from './lesson.service';
 import { multerOptions } from '../utils/config/multer.config';
@@ -26,6 +28,7 @@ export class LessonController {
   }
 
   @Get('/:id')
+  @UsePipes(new ValidationPipe())
   findSelectedByID(@Param('id') _id: string) {
     return this.lessonService.findSelectedById(_id);
   }
@@ -106,5 +109,11 @@ export class LessonController {
   @Auth('teacher')
   deleteSoundFile(@Param('name') fileName: string, @Body() lessonID: any) {
     return this.lessonService.deleteSoundFile(fileName, lessonID);
+  }
+
+  @Patch('/createShareUrl')
+  @Auth('teacher')
+  createShareUrl(@Body() data: any) {
+    return this.lessonService.createShareUrl(data);
   }
 }

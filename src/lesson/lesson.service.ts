@@ -8,7 +8,7 @@ import { LessonDto } from './dto/lesson.dto';
 import { InjectModel } from 'nestjs-typegoose';
 import { LessonModel } from './lesson.model';
 import { ModelType } from '@typegoose/typegoose/lib/types';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { FolderModel } from 'src/folder/folder.model';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -29,7 +29,15 @@ export class LessonService {
   }
 
   async findSelectedById(_id: string) {
+    if (!Types.ObjectId.isValid(_id)) {
+      throw new NotFoundException('Урок не найден');
+    }
+
     const findSelectedLesson = await this.LessonModel.findById(_id);
+    if (!findSelectedLesson) {
+      throw new NotFoundException('Урок не найден');
+    }
+
     return findSelectedLesson;
   }
 
@@ -371,6 +379,8 @@ export class LessonService {
       'lessonSettings.leaderboard': data.lessonSettings.leaderboard,
       'lessonSettings.soundboard.sounds': data.lessonSettings.soundboard.sounds,
       'lessonSettings.soundboard.music': data.lessonSettings.soundboard.music,
+      'lessonSettings.access': data.lessonSettings.access,
+      'lessonSettings.privacy': data.lessonSettings.privacy,
     };
 
     const saved = await this.LessonModel.findByIdAndUpdate(
@@ -380,5 +390,26 @@ export class LessonService {
     );
 
     return saved;
+  }
+
+  async createShareUrl(data: any) {
+    const findLesson = await this.LessonModel.findById(
+      data.data?.lessonData?._id,
+    );
+    if (!findLesson) {
+      throw new NotFoundException('Урок не найден');
+    }
+
+    const save = await this.LessonModel.findByIdAndUpdate(
+      { _id: data.data?.lessonData?._id },
+      {
+        $set: {
+          sharedPlayUrl: data.data?.sharedPlayUrl,
+        },
+      },
+      { new: true },
+    );
+
+    return save;
   }
 }
