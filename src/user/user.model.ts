@@ -1,17 +1,8 @@
 import { prop } from '@typegoose/typegoose';
 import { Base, TimeStamps } from '@typegoose/typegoose/lib/defaultClasses';
 import { Types } from 'mongoose';
-// import { FolderModel } from 'src/folder/folder.model';
 
 export interface IUserModel extends Base {}
-
-// class ActivityModel {
-//   @prop({ default: [] })
-//   folder?: Ref<FolderModel>[];
-
-//   @prop({ default: [] })
-//   lessons?: [];
-// }
 
 export class UserModel extends TimeStamps {
   _id: Types.ObjectId;

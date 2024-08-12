@@ -12,6 +12,7 @@ import mongoose, { Types } from 'mongoose';
 import { FolderModel } from 'src/folder/folder.model';
 import * as fs from 'fs';
 import * as path from 'path';
+import { MyResultsModel } from 'src/my-results/my-results.model';
 
 @Injectable()
 export class LessonService {
@@ -21,6 +22,8 @@ export class LessonService {
     private readonly LessonModel: ModelType<LessonModel>,
     @InjectModel(FolderModel)
     private readonly FolderModel: ModelType<FolderModel>,
+    @InjectModel(MyResultsModel)
+    private readonly MyResultsModel: ModelType<MyResultsModel>,
   ) {}
 
   async findById(_id: string) {
@@ -393,6 +396,7 @@ export class LessonService {
   }
 
   async createShareUrl(data: any) {
+    console.log(data);
     const findLesson = await this.LessonModel.findById(
       data.data?.lessonData?._id,
     );
@@ -409,6 +413,14 @@ export class LessonService {
       },
       { new: true },
     );
+
+    const create = new this.MyResultsModel({
+      _id: new mongoose.Types.ObjectId(),
+      ownerID: data.data?.lessonData?.ownerID,
+      lessonID: data.data?.lessonData?._id,
+      lessonName: data.data?.lessonData?.lessonName,
+    });
+    await create.save();
 
     return save;
   }

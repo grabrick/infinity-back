@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { FolderModule } from './folder/folder.module';
 import { LessonModule } from './lesson/lesson.module';
+import { MyResultsModule } from './my-results/my-results.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { LessonModule } from './lesson/lesson.module';
     UserModule,
     FolderModule,
     LessonModule,
+    MyResultsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

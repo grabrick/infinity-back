@@ -13,8 +13,8 @@ export class FolderModel extends TimeStamps {
   @prop()
   folderName: string;
 
-  @prop({ default: 'folder' })
-  type: string;
+  @prop()
+  createdIn: string;
 
   @prop({ type: [Types.ObjectId], default: [] })
   children: Types.ObjectId[];

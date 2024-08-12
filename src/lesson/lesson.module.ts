@@ -6,6 +6,7 @@ import { LessonModel } from './lesson.model';
 import { TypegooseModule } from 'nestjs-typegoose';
 import { FolderModel } from 'src/folder/folder.model';
 import { MulterModule } from '@nestjs/platform-express';
+import { MyResultsModel } from 'src/my-results/my-results.model';
 
 @Module({
   imports: [
@@ -14,6 +15,14 @@ import { MulterModule } from '@nestjs/platform-express';
         typegooseClass: LessonModel,
         schemaOptions: {
           collection: 'Lesson',
+        },
+      },
+    ]),
+    TypegooseModule.forFeature([
+      {
+        typegooseClass: MyResultsModel,
+        schemaOptions: {
+          collection: 'SharedLesson',
         },
       },
     ]),
