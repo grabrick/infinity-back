@@ -9,6 +9,7 @@ import { FolderModel } from './folder.model';
 import { ModelType } from '@typegoose/typegoose/lib/types';
 import mongoose, { Types } from 'mongoose';
 import { LessonModel } from 'src/lesson/lesson.model';
+import { MyResultsModel } from 'src/my-results/my-results.model';
 
 @Injectable()
 export class FolderService {
@@ -17,6 +18,8 @@ export class FolderService {
     private readonly FolderModel: ModelType<FolderModel>,
     @InjectModel(LessonModel)
     private readonly LessonModel: ModelType<LessonModel>,
+    @InjectModel(MyResultsModel)
+    private readonly MyResultsModel: ModelType<MyResultsModel>,
   ) {}
 
   async createNewFolder(folderDto: FolderDto) {
@@ -84,11 +87,20 @@ export class FolderService {
     const lesson = await this.LessonModel.find({
       parentID: new Types.ObjectId(parentId),
     }).exec();
-
-    return {
-      folder: folder,
-      lesson: lesson,
-    };
+    if (lesson.length === 0) {
+      const resultsLesson = await this.MyResultsModel.find({
+        parentID: new Types.ObjectId(parentId),
+      }).exec();
+      return {
+        folder: folder,
+        lesson: resultsLesson,
+      };
+    } else {
+      return {
+        folder: folder,
+        lesson: lesson,
+      };
+    }
   }
 
   async deleteFolders(data: {

@@ -44,6 +44,17 @@ export class LessonService {
     return findSelectedLesson;
   }
 
+  async getPlayLessonById(_id: string) {
+    const findShared = await this.MyResultsModel.findOne({
+      lessonID: _id,
+    });
+    if (!findShared) {
+      throw new NotFoundException('Урок не найден');
+    }
+
+    return findShared;
+  }
+
   async createNewLessons(lessonDto: LessonDto) {
     const create = new this.LessonModel({
       _id: new mongoose.Types.ObjectId(),
@@ -56,29 +67,43 @@ export class LessonService {
     return createNewFolder;
   }
 
-  async createIssue(lessonID: string) {
-    const lesson = await this.LessonModel.findById(lessonID);
-    if (!lesson) {
+  // async createIssue(lessonID: string) {
+  //   const lesson = await this.LessonModel.findById(lessonID);
+  //   if (!lesson) {
+  //     throw new NotFoundException('Урок не найден');
+  //   }
+
+  //   const symbols = ['A', 'B', 'C', 'D', 'F', 'G'];
+  //   const numbers = [1, 2, 3, 4, 5, 6];
+
+  //   const newQuestion: any = {
+  //     questionName: '',
+  //     questionFields: symbols.map((symbol, index) => ({
+  //       number: numbers[index],
+  //       symbol: symbol,
+  //       answer: '',
+  //       isCorrect: false,
+  //     })),
+  //   };
+
+  //   lesson.questions.push(newQuestion);
+  //   await lesson.save();
+
+  //   return newQuestion;
+  // }
+
+  async saveLesson(lessonID: string, data: any) {
+    const findLesson = await this.LessonModel.findById(lessonID);
+    if (!findLesson) {
       throw new NotFoundException('Урок не найден');
     }
+    const handleSave = await this.LessonModel.updateOne(
+      { _id: lessonID },
+      { questions: data.data },
+      { upsert: true },
+    );
 
-    const symbols = ['A', 'B', 'C', 'D', 'F', 'G'];
-    const numbers = [1, 2, 3, 4, 5, 6];
-
-    const newQuestion: any = {
-      questionName: '',
-      questionFields: symbols.map((symbol, index) => ({
-        number: numbers[index],
-        symbol: symbol,
-        field: '',
-        isCorrect: false,
-      })),
-    };
-
-    lesson.questions.push(newQuestion);
-    await lesson.save();
-
-    return newQuestion;
+    return handleSave;
   }
 
   async deleteSelectedIssue(issueID: string) {
@@ -99,43 +124,6 @@ export class LessonService {
     return lesson;
   }
 
-  async changeCurrent(issueID: string, data: any) {
-    const lesson = await this.LessonModel.findOne({
-      'questions._id': issueID,
-      'questions.questionFields.symbol': data.symbol,
-    });
-
-    if (lesson) {
-      // Найдем нужный вопрос по его ID
-      const question = lesson.questions.find(
-        (q) => q._id.toString() === issueID,
-      );
-
-      if (question) {
-        // Найдем нужное поле по символу
-        const field = question.questionFields.find(
-          (f) => f.symbol === data.symbol,
-        );
-
-        if (field) {
-          {
-            field.isCorrect === true
-              ? (field.isCorrect = false)
-              : (field.isCorrect = true);
-          }
-          await lesson.save();
-          return lesson;
-        } else {
-          throw new Error('Field not found');
-        }
-      } else {
-        throw new Error('Question not found');
-      }
-    } else {
-      throw new Error('Lesson not found');
-    }
-  }
-
   async delete(lessonID: string) {
     const lesson = await this.LessonModel.findByIdAndDelete(lessonID);
 
@@ -151,27 +139,42 @@ export class LessonService {
     const findDraggedLesson = await this.LessonModel.findById(
       draggedID.draggedID,
     );
+    const findSharedLesson = await this.MyResultsModel.findById(
+      draggedID.draggedID,
+    );
 
     if (!findTargetFolder) {
       throw new NotFoundException(`Такой папки не существует`);
     }
 
     if (!findDraggedLesson) {
-      throw new NotFoundException(`Такой элемент не существует`);
+      // throw new NotFoundException(`Такой элемент не существует`);
+      findTargetFolder.children.push(findSharedLesson._id);
+
+      // Сохранить изменения в папке
+      await findTargetFolder.save();
+
+      await this.MyResultsModel.findByIdAndUpdate(
+        draggedID.draggedID,
+        {
+          parentID: targetID,
+        },
+        { new: true },
+      );
+    } else {
+      findTargetFolder.children.push(findDraggedLesson._id);
+
+      // Сохранить изменения в папке
+      await findTargetFolder.save();
+
+      await this.LessonModel.findByIdAndUpdate(
+        draggedID.draggedID,
+        {
+          parentID: targetID,
+        },
+        { new: true },
+      );
     }
-
-    findTargetFolder.children.push(findDraggedLesson._id);
-
-    // Сохранить изменения в папке
-    await findTargetFolder.save();
-
-    await this.LessonModel.findByIdAndUpdate(
-      draggedID.draggedID,
-      {
-        parentID: targetID,
-      },
-      { new: true },
-    );
   }
 
   async moveBackLesson(
@@ -187,44 +190,88 @@ export class LessonService {
     }
 
     const findDraggedLesson = await this.LessonModel.findById(draggedLessonID);
-    if (findRootFolder.parentID === null) {
-      await this.LessonModel.findByIdAndUpdate(
-        { _id: findDraggedLesson._id },
-        {
-          parentID: null,
-        },
-      );
+    if (!findDraggedLesson) {
+      const findSharedLesson =
+        await this.MyResultsModel.findById(draggedLessonID);
+      if (findRootFolder.parentID === null) {
+        await this.MyResultsModel.findByIdAndUpdate(
+          { _id: findSharedLesson._id },
+          {
+            parentID: null,
+          },
+        );
 
-      await this.FolderModel.findByIdAndUpdate(
-        { _id: findDraggedLesson.parentID },
-        {
-          $pull: { children: findDraggedLesson._id },
-        },
-      );
+        await this.FolderModel.findByIdAndUpdate(
+          { _id: findSharedLesson.parentID },
+          {
+            $pull: { children: findSharedLesson._id },
+          },
+        );
+      } else {
+        // Устанавливаем parentID перетаскиваемой папки на id корневой папки
+        await this.MyResultsModel.findByIdAndUpdate(
+          { _id: findSharedLesson._id },
+          {
+            parentID: findRootFolder.parentID,
+          },
+        );
+
+        // Добавляем перетаскиваемую папку в children корневой папки
+        await this.FolderModel.findByIdAndUpdate(
+          { _id: findRootFolder._id },
+          {
+            $addToSet: { children: findSharedLesson._id },
+          },
+        );
+
+        // Удаляем перетаскиваемую папку из children её предыдущего родителя
+        await this.FolderModel.findByIdAndUpdate(
+          { _id: findSharedLesson.parentID },
+          {
+            $pull: { children: findSharedLesson._id },
+          },
+        );
+      }
     } else {
-      // Устанавливаем parentID перетаскиваемой папки на id корневой папки
-      await this.LessonModel.findByIdAndUpdate(
-        { _id: findDraggedLesson._id },
-        {
-          parentID: findRootFolder.parentID,
-        },
-      );
+      if (findRootFolder.parentID === null) {
+        await this.LessonModel.findByIdAndUpdate(
+          { _id: findDraggedLesson._id },
+          {
+            parentID: null,
+          },
+        );
 
-      // Добавляем перетаскиваемую папку в children корневой папки
-      await this.FolderModel.findByIdAndUpdate(
-        { _id: findRootFolder._id },
-        {
-          $addToSet: { children: findDraggedLesson._id },
-        },
-      );
+        await this.FolderModel.findByIdAndUpdate(
+          { _id: findDraggedLesson.parentID },
+          {
+            $pull: { children: findDraggedLesson._id },
+          },
+        );
+      } else {
+        // Устанавливаем parentID перетаскиваемой папки на id корневой папки
+        await this.LessonModel.findByIdAndUpdate(
+          { _id: findDraggedLesson._id },
+          {
+            parentID: findRootFolder.parentID,
+          },
+        );
 
-      // Удаляем перетаскиваемую папку из children её предыдущего родителя
-      await this.FolderModel.findByIdAndUpdate(
-        { _id: findDraggedLesson.parentID },
-        {
-          $pull: { children: findDraggedLesson._id },
-        },
-      );
+        // Добавляем перетаскиваемую папку в children корневой папки
+        await this.FolderModel.findByIdAndUpdate(
+          { _id: findRootFolder._id },
+          {
+            $addToSet: { children: findDraggedLesson._id },
+          },
+        );
+
+        // Удаляем перетаскиваемую папку из children её предыдущего родителя
+        await this.FolderModel.findByIdAndUpdate(
+          { _id: findDraggedLesson.parentID },
+          {
+            $pull: { children: findDraggedLesson._id },
+          },
+        );
+      }
     }
   }
 
@@ -396,7 +443,6 @@ export class LessonService {
   }
 
   async createShareUrl(data: any) {
-    console.log(data);
     const findLesson = await this.LessonModel.findById(
       data.data?.lessonData?._id,
     );
@@ -419,6 +465,8 @@ export class LessonService {
       ownerID: data.data?.lessonData?.ownerID,
       lessonID: data.data?.lessonData?._id,
       lessonName: data.data?.lessonData?.lessonName,
+      questions: findLesson.questions,
+      lessonSettings: findLesson.lessonSettings,
     });
     await create.save();
 

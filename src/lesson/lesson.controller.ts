@@ -33,22 +33,28 @@ export class LessonController {
     return this.lessonService.findSelectedById(_id);
   }
 
+  @Get('/playLesson/:id')
+  @UsePipes(new ValidationPipe())
+  getPlayLessonById(@Param('id') _id: string) {
+    return this.lessonService.getPlayLessonById(_id);
+  }
+
   @Post('/create')
   @Auth('teacher')
   createLessons(@Body() lessonDto: LessonDto) {
     return this.lessonService.createNewLessons(lessonDto);
   }
 
-  @Post('/:id/create-issue')
-  @Auth('teacher')
-  createIssue(@Param('id') lessonID) {
-    return this.lessonService.createIssue(lessonID);
-  }
+  // @Post('/:id/create-issue')
+  // @Auth('teacher')
+  // createIssue(@Param('id') lessonID) {
+  //   return this.lessonService.createIssue(lessonID);
+  // }
 
-  @Patch('/:id/change-current')
+  @Put('/:id/saveLesson')
   @Auth('teacher')
-  changeCurrent(@Param('id') issueID: string, @Body() data: any) {
-    return this.lessonService.changeCurrent(issueID, data);
+  saveLesson(@Param('id') lessonID, @Body() data: any) {
+    return this.lessonService.saveLesson(lessonID, data);
   }
 
   @Delete('/:id/delete-issue')

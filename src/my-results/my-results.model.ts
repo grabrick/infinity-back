@@ -1,4 +1,4 @@
-import { prop } from '@typegoose/typegoose';
+import { modelOptions, prop } from '@typegoose/typegoose';
 import { Base, TimeStamps } from '@typegoose/typegoose/lib/defaultClasses';
 import { Date, Types } from 'mongoose';
 
@@ -7,6 +7,51 @@ export interface IUserModel extends Base {}
 class ActiveSharedUrl {
   sharedAt: Date;
   sharedCloseAt: Date;
+}
+
+@modelOptions({ schemaOptions: { _id: false } })
+class Users {
+  userName: string;
+
+  @prop({ type: Types.ObjectId || null })
+  userID: Types.ObjectId | null;
+
+  correct: number;
+
+  incorrect: number;
+
+  selectedAnswers: any[];
+
+  @prop({ type: () => Date, default: new Date() })
+  createdAt: Date;
+}
+
+@modelOptions({ schemaOptions: { _id: false } })
+class QuestionFieldsModel {
+  @prop()
+  number: number;
+
+  @prop()
+  symbol: string;
+
+  @prop({ default: '' })
+  answer: string;
+
+  @prop({ default: false })
+  isCorrect: boolean;
+}
+
+@modelOptions({ schemaOptions: { _id: false } })
+class QuestionModel {
+  id: number;
+
+  name: string;
+
+  fields: QuestionFieldsModel[];
+
+  correctly: number;
+
+  wrong: number;
 }
 
 export class MyResultsModel extends TimeStamps {
@@ -21,11 +66,23 @@ export class MyResultsModel extends TimeStamps {
   @prop({ ref: 'Lesson' })
   lessonID: Types.ObjectId;
 
+  @prop({ default: 'sharedResult' })
+  type: string;
+
   @prop()
   lessonName: string;
 
   @prop({ default: 0 })
   visitCount: number;
+
+  @prop({ default: [] })
+  users: Users[];
+
+  @prop({ default: [] })
+  questions: QuestionModel[];
+
+  @prop({ type: () => Object, default: {} })
+  lessonSettings: any;
 
   @prop({ default: null })
   activeSharedUrl: ActiveSharedUrl;
