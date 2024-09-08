@@ -20,6 +20,8 @@ class Users {
 
   incorrect: number;
 
+  currentTime: string;
+
   selectedAnswers: any[];
 
   @prop({ type: () => Date, default: new Date() })
@@ -49,9 +51,9 @@ class QuestionModel {
 
   fields: QuestionFieldsModel[];
 
-  correctly: number;
+  correct: number;
 
-  wrong: number;
+  incorrect: number;
 }
 
 export class MyResultsModel extends TimeStamps {

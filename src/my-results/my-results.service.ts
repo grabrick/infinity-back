@@ -67,6 +67,21 @@ export class MyResultsService {
     if (!findSharedLesson) {
       throw new NotFoundException('Урока не найден');
     }
+    const updatedQuestions = findSharedLesson.questions.map((question) => {
+      const selectedAnswer = data.selectedAnswers.find(
+        (answer) => answer.questionName === question.name,
+      );
+
+      if (selectedAnswer) {
+        if (selectedAnswer.isCorrect) {
+          question.correct += 1;
+        } else {
+          question.incorrect += 1;
+        }
+      }
+
+      return question;
+    });
     const addedNewUser = await this.MyResultsModel.updateOne(
       { lessonID: _id },
       {
@@ -80,16 +95,28 @@ export class MyResultsService {
                   data.userID !== null ? new Types.ObjectId(data.userID) : null,
                 correct: data.correct,
                 incorrect: data.incorrect,
+                currentTime: data.currentTime,
                 selectedAnswers: data.selectedAnswers,
                 createdAt: new Date(),
               },
             ],
           },
         },
+        questions: updatedQuestions,
       },
       { upsert: true },
     );
     return addedNewUser;
+  }
+
+  async selectedAnswer(_id: string, data: any) {
+    const findSharedLesson = await this.MyResultsModel.findOne({
+      lessonID: _id,
+    });
+    if (!findSharedLesson) {
+      throw new NotFoundException('Урок не нвйден');
+    }
+    return data;
   }
 
   async moveLesson(targetID: string, draggedID: { draggedID: string }) {

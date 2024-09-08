@@ -138,32 +138,32 @@ class Soundboard {
   sounds: any;
 }
 
-@modelOptions({ schemaOptions: { _id: false } })
-class QuestionFieldsModel {
-  @prop()
-  number: number;
+// @modelOptions({ schemaOptions: { _id: false } })
+// class QuestionFieldsModel {
+//   @prop()
+//   number: number;
 
-  @prop()
-  symbol: string;
+//   @prop()
+//   symbol: string;
 
-  @prop({ default: '' })
-  answer: string;
+//   @prop({ default: '' })
+//   answer: string;
 
-  @prop({ default: false })
-  isCorrect: boolean;
-}
+//   @prop({ default: false })
+//   isCorrect: boolean;
+// }
 
-class QuestionModel {
-  id: number;
+// class QuestionModel {
+//   id: number;
 
-  name: string;
+//   name: string;
 
-  fields: QuestionFieldsModel[];
+//   fields: QuestionFieldsModel[];
 
-  correctly: number;
+//   correct: number;
 
-  wrong: number;
-}
+//   incorrect: number;
+// }
 
 @modelOptions({ schemaOptions: { _id: false } })
 class LessonSettings {
@@ -217,6 +217,9 @@ export class LessonModel extends TimeStamps {
   @prop({ default: 'lesson' })
   type: string;
 
+  @prop()
+  desc: string;
+
   @prop({ type: Types.ObjectId, default: null })
   parentID: Types.ObjectId;
 
@@ -227,7 +230,7 @@ export class LessonModel extends TimeStamps {
   sharedPlayUrl: string;
 
   @prop({ default: [] })
-  questions: QuestionModel[];
+  questions: any[];
 
   @prop({
     type: () => LessonSettings,

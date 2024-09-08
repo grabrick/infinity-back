@@ -26,6 +26,7 @@ export class MyResultsController {
   addedName(@Param('id', IdValidationPipe) _id: string, @Body() data: any) {
     return this.myResultsService.addedName(_id, data);
   }
+
   @Patch('/:id/moveLesson')
   @Auth('teacher')
   moveLesson(@Param('id') targetID: string, @Body() draggedID: any) {

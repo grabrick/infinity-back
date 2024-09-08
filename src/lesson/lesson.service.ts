@@ -48,9 +48,6 @@ export class LessonService {
     const findShared = await this.MyResultsModel.findOne({
       lessonID: _id,
     });
-    if (!findShared) {
-      throw new NotFoundException('Урок не найден');
-    }
 
     return findShared;
   }
@@ -60,37 +57,13 @@ export class LessonService {
       _id: new mongoose.Types.ObjectId(),
       ownerID: lessonDto.ownerID,
       lessonName: lessonDto.lessonName,
+      desc: lessonDto.desc,
       template: lessonDto.template,
     });
 
     const createNewFolder = await create.save();
     return createNewFolder;
   }
-
-  // async createIssue(lessonID: string) {
-  //   const lesson = await this.LessonModel.findById(lessonID);
-  //   if (!lesson) {
-  //     throw new NotFoundException('Урок не найден');
-  //   }
-
-  //   const symbols = ['A', 'B', 'C', 'D', 'F', 'G'];
-  //   const numbers = [1, 2, 3, 4, 5, 6];
-
-  //   const newQuestion: any = {
-  //     questionName: '',
-  //     questionFields: symbols.map((symbol, index) => ({
-  //       number: numbers[index],
-  //       symbol: symbol,
-  //       answer: '',
-  //       isCorrect: false,
-  //     })),
-  //   };
-
-  //   lesson.questions.push(newQuestion);
-  //   await lesson.save();
-
-  //   return newQuestion;
-  // }
 
   async saveLesson(lessonID: string, data: any) {
     const findLesson = await this.LessonModel.findById(lessonID);
