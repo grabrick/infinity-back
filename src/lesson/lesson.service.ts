@@ -97,12 +97,104 @@ export class LessonService {
     return lesson;
   }
 
+  // async delete(lessonID: string) {
+  //   // const lesson = await this.LessonModel.findByIdAndDelete(lessonID);
+  //   const lesson = await this.LessonModel.findById(lessonID);
+
+  //   if (!lesson) {
+  //     throw new NotFoundException('Такой папки не существует');
+  //   }
+  //   if (lesson.lessonSettings.soundboard.music) {
+  //     const currentDir = process.cwd();
+  //     const uploadsDir = path.join(currentDir, 'uploads');
+
+  //     if (!fs.existsSync(uploadsDir)) {
+  //       fs.mkdirSync(uploadsDir, { recursive: true });
+  //     }
+
+  //     const files = fs.readdirSync(uploadsDir);
+  //     this.logger.log(`Files in uploads directory: ${files.join(', ')}`);
+
+  //     const filePath = path.join(
+  //       uploadsDir,
+  //       lesson.lessonSettings.soundboard.music.file.fileName,
+  //     );
+
+  //     if (fs.existsSync(filePath)) {
+  //       fs.unlinkSync(filePath);
+  //     }
+  //   }
+
+  //   return lesson;
+  // }
+
   async delete(lessonID: string) {
-    const lesson = await this.LessonModel.findByIdAndDelete(lessonID);
+    // Получаем урок по ID
+    const lesson = await this.LessonModel.findById(lessonID);
 
     if (!lesson) {
-      throw new NotFoundException('Такой папки не существует');
+      throw new NotFoundException('Такого урока не существует');
     }
+
+    const currentDir = process.cwd();
+    const uploadsDir = path.join(currentDir, 'uploads');
+
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // Удаление музыкального файла, если он существует
+    if (
+      lesson.lessonSettings.soundboard.music &&
+      lesson.lessonSettings.soundboard.music.file &&
+      lesson.lessonSettings.soundboard.music.file.fileName
+    ) {
+      const musicFilePath = path.join(
+        uploadsDir,
+        lesson.lessonSettings.soundboard.music.file.fileName,
+      );
+
+      if (fs.existsSync(musicFilePath)) {
+        fs.unlinkSync(musicFilePath);
+        this.logger.log(
+          `Музыкальный файл ${lesson.lessonSettings.soundboard.music.file.fileName} удален.`,
+        );
+      }
+    }
+
+    // Удаление всех звуков из массива sounds
+    if (
+      lesson.lessonSettings.soundboard.sounds &&
+      lesson.lessonSettings.soundboard.sounds.length > 0
+    ) {
+      lesson.lessonSettings.soundboard.sounds.forEach((sound) => {
+        // Проверяем наличие file и fileName в объекте audioFile
+        if (
+          sound.audioFile &&
+          sound.audioFile.file &&
+          sound.audioFile.file.fileName
+        ) {
+          const soundFilePath = path.join(
+            uploadsDir,
+            sound.audioFile.file.fileName,
+          );
+
+          if (fs.existsSync(soundFilePath)) {
+            fs.unlinkSync(soundFilePath);
+            this.logger.log(
+              `Аудиофайл ${sound.audioFile.file.fileName} удален.`,
+            );
+          }
+        } else {
+          this.logger.warn(
+            `Аудиофайл для звука с ID ${sound.id} отсутствует или не имеет fileName`,
+          );
+        }
+      });
+    }
+
+    // После удаления всех файлов удаляем сам урок из базы данных
+    await this.LessonModel.findByIdAndDelete(lessonID);
 
     return lesson;
   }
@@ -438,6 +530,8 @@ export class LessonService {
       ownerID: data.data?.lessonData?.ownerID,
       lessonID: data.data?.lessonData?._id,
       lessonName: data.data?.lessonData?.lessonName,
+      desc: data.data?.lessonData?.desc,
+      template: data.data?.lessonData?.template,
       questions: findLesson.questions,
       lessonSettings: findLesson.lessonSettings,
     });

@@ -74,6 +74,12 @@ export class MyResultsModel extends TimeStamps {
   @prop()
   lessonName: string;
 
+  @prop()
+  desc: string;
+
+  @prop()
+  template: string;
+
   @prop({ default: 0 })
   visitCount: number;
 

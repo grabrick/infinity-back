@@ -45,12 +45,6 @@ export class LessonController {
     return this.lessonService.createNewLessons(lessonDto);
   }
 
-  // @Post('/:id/create-issue')
-  // @Auth('teacher')
-  // createIssue(@Param('id') lessonID) {
-  //   return this.lessonService.createIssue(lessonID);
-  // }
-
   @Put('/:id/saveLesson')
   @Auth('teacher')
   saveLesson(@Param('id') lessonID, @Body() data: any) {
