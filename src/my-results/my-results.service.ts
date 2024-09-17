@@ -56,7 +56,7 @@ export class MyResultsService {
     return { shared: findShared, originLesson: findOriginLesson };
   }
 
-  async addedName(_id: string, data: any) {
+  async wrapUpLesson(_id: string, data: any) {
     const findOriginLesson = await this.LessonModel.findById(_id);
     const findSharedLesson = await this.MyResultsModel.findOne({
       lessonID: _id,

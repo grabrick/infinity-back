@@ -22,9 +22,9 @@ export class MyResultsController {
     return this.myResultsService.getEmbeddedLesson(_id);
   }
 
-  @Post('/:id/addedName')
-  addedName(@Param('id', IdValidationPipe) _id: string, @Body() data: any) {
-    return this.myResultsService.addedName(_id, data);
+  @Post('/:id/wrapUpLesson')
+  wrapUpLesson(@Param('id', IdValidationPipe) _id: string, @Body() data: any) {
+    return this.myResultsService.wrapUpLesson(_id, data);
   }
 
   @Patch('/:id/moveLesson')
